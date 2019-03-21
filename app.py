@@ -4,6 +4,7 @@ from contextlib import closing
 from requests import get
 
 import logging
+import sys
 import time
 import threading
 logger = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+tested_url = sys.argv[1]
+print(tested_url)
 def is_good_response(response):
     content_type = response.headers['Content-Type'].lower()
     return (response.status_code == 200
@@ -36,20 +39,18 @@ def check_alive(url):
     try:
         with closing(get(url, stream=True)) as resp:
             if is_good_response(resp):
-                print('{} {}'.format(url, 'is working'))
                 working_list.append(url)
                 return
             else:
-                print('{} {}'.format(url, 'is not working'))
                 non_working_list.append(url)
                 return
     except:
         return
 
 
-main_page_html = simple_get(url='http://www.guardicore.com')
+main_page_html = simple_get(url=tested_url)
 links_list = []
-soup = BeautifulSoup(main_page_html)
+soup = BeautifulSoup(main_page_html, 'lxml')
 for a in soup.find_all('a', href=True):
     extracted_link = a['href']
     links_list.append(extracted_link)
@@ -62,21 +63,21 @@ for url in temp_list:
     if 'http' in url:
         clean_urls_list.append(url)
 
-guardicore_links = []
+tested_page_links = []
 for url in clean_urls_list:
-    if "www.guardicore" in url:
-        guardicore_links.append(url)
+    if tested_url in url:
+        tested_page_links.append(url)
 
 
 extended_link_list = []
 extended_clean_urls_list = []
-extended_guardicore_links = []
+extended_tested_page_links = []
 
 # Fetching links for all the pages under the domain:
-for url in guardicore_links:
+for url in tested_page_links:
     main_page_html = simple_get(url=url)
     links_list = []
-    soup = BeautifulSoup(main_page_html)
+    soup = BeautifulSoup(main_page_html, 'lxml')
     for a in soup.find_all('a', href=True):
         extracted_link = a['href']
         extended_link_list.append(extracted_link)
@@ -89,29 +90,39 @@ for url in guardicore_links:
             extended_clean_urls_list.append(url)
 
     for url in clean_urls_list:
-        if "www.guardicore" in url:
-            extended_guardicore_links.append(url)
+        if tested_url in url:
+            extended_tested_page_links.append(url)
 
-myset = set(extended_guardicore_links)
-unique_guardicore_links = list(myset)
+myset = set(extended_tested_page_links)
+unique_links = list(myset)
 
 threads = []
 working_list = []
 non_working_list = []
-for x in range (0, len(unique_guardicore_links)):
-    url = unique_guardicore_links[x]
+for x in range (0, len(unique_links)):
+    url = unique_links[x]
     t = threading.Thread(target=check_alive, args=(url, ))
     threads.append(t)
     t.start()
-    time.sleep(1)
+    time.sleep(2)
 
+print('--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+message = '{} {} {} {}'.format(tested_url, 'has', len(working_list), 'working pages')
+print(message)
+logger.info(message)
 for url in working_list:
-    message = '{}: {}\n'.format('This URL is working', url)
+    message = '{}: {}'.format('This URL is working', url)
     print(message)
+    logger.info(message)
 
+print('--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+message = '{} {} {} {}'.format(tested_url, 'has', len(non_working_list), 'non working pages')
+print(message)
+logger.info(message)
 for url in non_working_list:
-    message = '{}: {}\n'.format('This URL is not working', url)
+    message = '{}: {}'.format('This URL is not working', url)
     print(message)
-
+    logger.info(message)
+print('--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
 
 
