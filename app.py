@@ -28,7 +28,9 @@ def simple_get(url):
     message = '{} {} {}'.format('Fetching', url, 'content')
     logger.info(message)
     print(message)
-    with closing(get(url, stream=True)) as resp:
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
+    with closing(get(url, headers=headers, stream=True)) as resp:
         if is_good_response(resp):
             return resp.content
         else:
