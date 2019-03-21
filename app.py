@@ -22,7 +22,7 @@ def is_good_response(response):
             and content_type.find('html') > -1)
 
 def simple_get(url):
-    message = '{} {} {}'.format('Testing if', url, 'is working')
+    message = '{} {} {}'.format('Fetching', url, 'content')
     logger.info(message)
     print(message)
     with closing(get(url, stream=True)) as resp:
@@ -47,8 +47,6 @@ def check_alive(url):
         return
 
 
-
-
 main_page_html = simple_get(url='http://www.guardicore.com')
 links_list = []
 soup = BeautifulSoup(main_page_html)
@@ -69,16 +67,51 @@ for url in clean_urls_list:
     if "www.guardicore" in url:
         guardicore_links.append(url)
 
+
+extended_link_list = []
+extended_clean_urls_list = []
+extended_guardicore_links = []
+
+# Fetching links for all the pages under the domain:
+for url in guardicore_links:
+    main_page_html = simple_get(url=url)
+    links_list = []
+    soup = BeautifulSoup(main_page_html)
+    for a in soup.find_all('a', href=True):
+        extracted_link = a['href']
+        extended_link_list.append(extracted_link)
+    myset = set(extended_link_list)
+    temp_list = list(myset)
+
+    # remove non http links:
+    for url in temp_list:
+        if 'http' in url:
+            extended_clean_urls_list.append(url)
+
+    for url in clean_urls_list:
+        if "www.guardicore" in url:
+            extended_guardicore_links.append(url)
+
+myset = set(extended_guardicore_links)
+unique_guardicore_links = list(myset)
+
 threads = []
 working_list = []
 non_working_list = []
-for x in range (0, len(clean_urls_list)):
-    url = clean_urls_list[x]
+for x in range (0, len(unique_guardicore_links)):
+    url = unique_guardicore_links[x]
     t = threading.Thread(target=check_alive, args=(url, ))
     threads.append(t)
     t.start()
     time.sleep(1)
-print(working_list)
-print(non_working_list)
+
+for url in working_list:
+    message = '{}: {}\n'.format('This URL is working', url)
+    print(message)
+
+for url in non_working_list:
+    message = '{}: {}\n'.format('This URL is not working', url)
+    print(message)
+
 
 
